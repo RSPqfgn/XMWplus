@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         小码王Plus
-// @version      1.5.0
+// @version      1.5.1
 // @description  使你的小码王更易于使用
 // @author       RSPqfgn
 // @match        https://world.xiaomawang.com/*
@@ -10,7 +10,7 @@
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
 // @grant        GM_xmlhttpRequest
-// @require      https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js
+// @require      https://cdn.bootcdn.net/ajax/libs/sweetalert2/11.11.0/sweetalert2.all.min.js
 // ==/UserScript==
 (function () {
     'use strict';
@@ -25,7 +25,8 @@ const settings = {
     removeDynamicRedDot: GM_getValue('removeDynamicRedDot', false), // 动态免打扰
     removeAvatarFrame: GM_getValue('removeAvatarFrame', false), // 移除头像框
     removeMagicReview: GM_getValue('removeMagicReview', false), // 移除右下角魔力测评
-    taskCenterDoNotDisturb: GM_getValue('taskCenterDoNotDisturb', false) // 任务中心免打扰
+    taskCenterDoNotDisturb: GM_getValue('taskCenterDoNotDisturb', false), // 任务中心免打扰
+    adaptiveTextbox: GM_getValue('adaptiveTextbox', false) // 自适应文本框
 };
 
 // 注册命令
@@ -643,6 +644,9 @@ function openSettingsDialog() {
     <label class="custom-checkbox">
         <input type="checkbox" name="removeMagicReview" ${settings.removeMagicReview ? 'checked' : ''}> 移除右下角魔力测评
     </label><br/>
+    <label class="custom-checkbox">
+        <input type="checkbox" name="adaptiveTextbox" ${settings.adaptiveTextbox ? 'checked' : ''}> 自适应文本框(beta)
+    </label><br/>
 </div>
 `,
         showCancelButton: true,
@@ -705,6 +709,7 @@ didOpen: () => {
         settings.removeAvatarFrame = document.querySelector('input[name="removeAvatarFrame"]').checked; // 获取移除头像框状态
         settings.removeMagicReview = document.querySelector('input[name="removeMagicReview"]').checked; // 获取移除魔力测评状态
         settings.taskCenterDoNotDisturb = document.querySelector('input[name="taskCenterDoNotDisturb"]').checked; // 获取任务中心免打扰状态
+        settings.adaptiveTextbox = document.querySelector('input[name="adaptiveTextbox"]').checked;// 获取自适应文本框状态
 
         GM_setValue('autoReceive', settings.autoReceive); // 保存领取奖励状态
         GM_setValue('autoSignIn', settings.autoSignIn); // 保存签到状态
@@ -716,6 +721,7 @@ didOpen: () => {
         GM_setValue('removeAvatarFrame', settings.removeAvatarFrame); // 保存移除头像框状态
         GM_setValue('removeMagicReview', settings.removeMagicReview); // 保存移除魔力测评状态
         GM_setValue('taskCenterDoNotDisturb', settings.taskCenterDoNotDisturb); // 保存任务中心免打扰状态
+        GM_setValue('adaptiveTextbox', settings.adaptiveTextbox);// 保存自适应文本框状态
 
         return Swal.fire({
             title: '设置已保存',
@@ -985,6 +991,163 @@ window.onload = function() {
             }
         }, 1000);
     }
+    if (settings.adaptiveTextbox) {
+        // 创建测量元素
+        const measurer = document.createElement('span');
+        Object.assign(measurer.style, {
+            position: 'absolute',
+            visibility: 'hidden',
+            whiteSpace: 'pre',
+            height: 'auto',
+            width: 'auto'
+        });
+
+        // 通用调整函数
+        function autoAdjust(element) {
+            if (element.tagName === 'TEXTAREA') {
+                element.style.height = 'auto';
+                element.style.height = element.scrollHeight + 'px';
+            } else if (element.tagName === 'INPUT' && element.type === 'text') {
+                const style = window.getComputedStyle(element);
+                measurer.style.font = style.font;
+                measurer.style.padding = style.padding;
+                measurer.textContent = element.value || element.placeholder;
+                
+                document.body.appendChild(measurer);
+                const minWidth = parseInt(style.minWidth) || 100;
+                const newWidth = Math.max(minWidth, measurer.offsetWidth + 20);
+                document.body.removeChild(measurer);
+                
+                element.style.width = newWidth + 'px';
+                element.style.transition = 'width 0.2s ease';
+            }
+        }
+
+        // 事件处理函数
+        function handleInput(e) {
+            autoAdjust(e.target);
+        }
+
+        // 初始化现有文本框
+        function initTextboxes() {
+            document.querySelectorAll('input[type="text"], textarea').forEach(element => {
+                autoAdjust(element);
+                element.addEventListener('input', handleInput);
+            });
+        }
+
+        // 使用MutationObserver监听动态加载的文本框
+        const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1) {
+                        const textboxes = node.querySelectorAll?.('input[type="text"], textarea') || [];
+                        textboxes.forEach(element => {
+                            if (!element.dataset.adaptiveInit) {
+                                autoAdjust(element);
+                                element.addEventListener('input', handleInput);
+                                element.dataset.adaptiveInit = 'true';
+                            }
+                        });
+                    }
+                });
+            });
+        });
+
+        // 开始观察DOM变化
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        // 初始执行
+        initTextboxes();
+        
+        // 添加重置监听
+        window.addEventListener('resize', () => {
+            document.querySelectorAll('input[type="text"], textarea').forEach(autoAdjust);
+        });
+    }
+
+    // 编辑信息功能注入
+(function injectEditButton() {
+    const targetMenuSelector = 'ul.work-item-copy___StyledUl-jxco1t-5';
+
+    // 创建编辑按钮
+    function createEditButton(compositionId) {
+    const li = document.createElement('li');
+    li.className = 'person-operate-item__aOISu';
+    
+    const a = document.createElement('a');
+    a.name = '编辑信息';
+    a.title = '由XMWplus添加'; // 修改title提示
+    a.href = `https://world.xiaomawang.com/w/release/${compositionId}`;
+    a.target = '_blank';
+    a.textContent = '编辑信息';
+    
+    // 修改后的悬浮样式
+    a.style.cssText = `
+        transition: color 0.3s ease;
+        cursor: pointer;
+        color: #666; /* 默认颜色 */
+    `;
+    // 修改悬停颜色
+    a.addEventListener('mouseover', () => a.style.color = '#ffa31a');
+    a.addEventListener('mouseout', () => a.style.color = '#666');
+    
+    li.appendChild(a);
+    return li;
+}
+
+    // 提取作品ID
+    function extractCompositionId(link) {
+        // 解码URL中的HTML实体（如&amp;）
+        const decodedLink = decodeURIComponent(link);
+        
+        // 增强正则表达式以匹配字母数字组合ID
+        const match = decodedLink.match(/compositionId=([a-zA-Z0-9]+)/);
+        
+        return match ? match[1] : null;
+    }
+
+    // 注入按钮
+    function tryInject() {
+        document.querySelectorAll(targetMenuSelector).forEach(menu => {
+            // 检查是否已经注入过
+            if (menu.querySelector('a[name="编辑信息"]')) return;
+
+            // 查找继续创作按钮
+            const createLink = menu.querySelector('a[name="继续创作"]');
+            if (!createLink) return;
+
+            // 提取作品ID
+            const compositionId = extractCompositionId(createLink.href);
+            if (!compositionId) return;
+
+            // 创建并插入按钮
+            const editButton = createEditButton(compositionId);
+            createLink.parentElement.insertAdjacentElement('afterend', editButton);
+
+            // 保持菜单项间距一致
+            menu.style.gap = '8px';
+        });
+    }
+
+    // 使用MutationObserver监听动态加载
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(() => tryInject());
+    });
+
+    // 初始注入
+    tryInject();
+    
+    // 开始观察
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+})();
+
 };
 
 })();
