@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         小码王Plus
-// @version      1.5.1
+// @version      1.6.0
 // @description  使你的小码王更易于使用
 // @author       RSPqfgn
 // @match        https://world.xiaomawang.com/*
@@ -10,8 +10,41 @@
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
 // @grant        GM_xmlhttpRequest
+// @grant        GM_addStyle
 // @require      https://cdn.bootcdn.net/ajax/libs/sweetalert2/11.11.0/sweetalert2.all.min.js
 // ==/UserScript==
+
+// 添加CSS样式规则
+GM_addStyle(`
+body[data-page="index"] .sticky-outer-wrapper:not(.active) .xiaoma__3Eq2i {
+    display: none !important;
+}
+`);
+
+// 监听滚动事件来控制logo显示
+function updateLogoVisibility() {
+    // 检查当前页面URL是否为首页
+    if (window.location.href === 'https://world.xiaomawang.com/w/index') {
+        const stickyWrapper = document.querySelector('.sticky-outer-wrapper');
+        if (stickyWrapper) {
+            if (window.scrollY > 0) {
+                stickyWrapper.classList.add('active');
+            } else {
+                stickyWrapper.classList.remove('active');
+            }
+        }
+        // 添加页面标识
+        document.body.setAttribute('data-page', 'index');
+    }
+}
+
+window.addEventListener('scroll', updateLogoVisibility);
+
+// 在页面加载完成后立即检查状态
+window.addEventListener('load', () => {
+    updateLogoVisibility();
+    addXMWPlusButton();
+});
 (function () {
     'use strict';
 // 初始化设置
@@ -26,15 +59,131 @@ const settings = {
     removeAvatarFrame: GM_getValue('removeAvatarFrame', false), // 移除头像框
     removeMagicReview: GM_getValue('removeMagicReview', false), // 移除右下角魔力测评
     taskCenterDoNotDisturb: GM_getValue('taskCenterDoNotDisturb', false), // 任务中心免打扰
-    adaptiveTextbox: GM_getValue('adaptiveTextbox', false) // 自适应文本框
+    adaptiveTextbox: GM_getValue('adaptiveTextbox', false), // 自适应文本框
+    autoCheckUpdate: GM_getValue('autoCheckUpdate', true) // 自动检查更新
 };
 
 // 注册命令
 GM_registerMenuCommand('查询', performQuery);
-GM_registerMenuCommand('自动完成任务', autoCompleteTask);
+GM_registerMenuCommand('自动任务', autoCompleteTask);
 GM_registerMenuCommand('设置', openSettingsDialog);
 
-//查询功能
+// 添加XMW+按钮和下拉菜单
+function addXMWPlusButton() {
+    const mainNav = document.querySelector('.main-nav__120BM ul.main-link-wrap__7VwqL');
+    if (!mainNav) return;
+
+    // 检查是否已存在XMW+按钮
+    const existingButton = Array.from(mainNav.children).find(li =>
+        li.querySelector('a')?.textContent === 'XMW+');
+    if (existingButton) return;
+
+    // 添加菜单样式
+    GM_addStyle(`
+        .xmwplus-nav {
+            position: relative;
+        }
+        .xmwplus-button {
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            height: 100%;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .xmwplus-button:hover {
+            color: #007bff;
+        }
+        .xmwplus-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 8px 0;
+            min-width: 120px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+        .xmwplus-nav:hover .xmwplus-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .xmwplus-menu-item {
+            padding: 8px 16px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            width: 120px;
+            justify-content: center;
+        }
+        .xmwplus-menu-item:hover {
+            background: #f5f5f5;
+            color: #007bff;
+        }
+    `);
+
+    // 创建XMW+按钮
+    const xmwPlusLi = document.createElement('li');
+    xmwPlusLi.innerHTML = `
+        <div class="xmwplus-nav">
+            <a class="xmwplus-button">XMW+</a>
+            <ul class="xmwplus-menu">
+                <li><a class="xmwplus-menu-item" id="xmwplus-query">查询</a></li>
+                <li><a class="xmwplus-menu-item" id="xmwplus-task">自动任务</a></li>
+                <li><a class="xmwplus-menu-item" id="xmwplus-settings">设置</a></li>
+            </ul>
+        </div>
+    `;
+
+    // 插入到社区共建按钮后
+    const communityBuildingLi = Array.from(mainNav.children).find(li => 
+        li.textContent.includes('社区共建'));
+    if (communityBuildingLi) {
+        mainNav.insertBefore(xmwPlusLi, communityBuildingLi.nextSibling);
+    } else {
+        mainNav.appendChild(xmwPlusLi);
+    }
+
+    // 添加点击事件
+    document.getElementById('xmwplus-query').addEventListener('click', performQuery);
+    document.getElementById('xmwplus-task').addEventListener('click', autoCompleteTask);
+    document.getElementById('xmwplus-settings').addEventListener('click', openSettingsDialog);
+}
+
+// 监听顶栏变化
+function observeNavbar() {
+    // 每秒检查一次XMW+按钮是否存在
+    setInterval(() => {
+        const mainNav = document.querySelector('.main-nav__120BM ul.main-link-wrap__7VwqL');
+        if (mainNav) {
+            const existingButton = Array.from(mainNav.children).find(li =>
+                li.querySelector('a')?.textContent === 'XMW+');
+            if (!existingButton) {
+                addXMWPlusButton();
+            }
+        }
+    }, 1000);
+}
+
+// 在页面加载完成后添加按钮并开始监听
+window.addEventListener('load', () => {
+    addXMWPlusButton();
+    observeNavbar();
+});
+
+// 在页面加载完成后添加按钮
+window.addEventListener('load', addXMWPlusButton);
+// 查询功能
 function performQuery() {
     Swal.fire({
         title: '查询',
@@ -502,10 +651,10 @@ function performQuery() {
     });
 }
 
-//自动完成任务
+//自动任务
 function autoCompleteTask() {
     Swal.fire({
-        title: '自动完成任务',
+        title: '自动任务',
         html: `
             <div>正在开发，敬请期待</div>
             <div style="text-decoration: line-through; color: gray;">屑红石镐又在画饼了</div>
@@ -603,11 +752,26 @@ function openSettingsDialog() {
     color: white; /* 符号颜色 */
     font-size: 18px; /* 符号大小 */
 }
+.about-section {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.about-item {
+    margin: 8px 0;
+    color: #666;
+}
+
+
 </style>
 
 <div class="button-container">
-    <div id="taskSection" class="section active">自动任务</div> <!-- 默认高亮 -->
+    <div id="taskSection" class="section active">自动任务</div>
     <div id="customSection" class="section">界面定制</div>
+    <div id="aboutSection" class="section">关于</div>
 </div>
 
 <div id="taskSettings">
@@ -648,6 +812,23 @@ function openSettingsDialog() {
         <input type="checkbox" name="adaptiveTextbox" ${settings.adaptiveTextbox ? 'checked' : ''}> 自适应文本框(beta)
     </label><br/>
 </div>
+
+<div id="aboutSettings" class="hidden">
+    <div class="about-section">
+        <div class="about-item"><strong>小码王Plus</strong></div>
+        <div class="about-item"><strong>版本：</strong>v${GM_info.script.version}</div>
+        <div class="about-item"><strong>作者：</strong>RSPqfgn</div>
+        <div class="about-item"><strong>许可证：</strong>MIT</div>
+        <div class="about-item" style="display: flex; align-items: center;">
+            <button id="checkUpdateBtn" style="background-color: #007bff; color: white; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; transition: background-color 0.3s; margin-right: 10px;">检查更新</button>
+            <span id="updateStatus" style="color: #666;"></span>
+        </div>
+        <label class="custom-checkbox">
+            <input type="checkbox" name="autoCheckUpdate" ${settings.autoCheckUpdate ? 'checked' : ''}>
+            每天自动检查更新
+        </label>
+    </div>
+</div>
 `,
         showCancelButton: true,
         confirmButtonText: '保存',
@@ -659,43 +840,104 @@ function openSettingsDialog() {
         // 修改后的 didOpen 回调：
 
 didOpen: () => {
+            // 获取检查更新按钮和状态文本元素
+            const checkUpdateBtn = document.getElementById('checkUpdateBtn');
+            const updateStatus = document.getElementById('updateStatus');
 
-    // 自动任务按钮点击事件
+            // 检查更新按钮点击事件处理函数
+            async function handleUpdateCheck() {
+                // 禁用按钮并更改文本
+                checkUpdateBtn.disabled = true;
+                checkUpdateBtn.textContent = '检查中';
+                checkUpdateBtn.style.backgroundColor = '#ccc';
+                updateStatus.textContent = '';
 
-    document.getElementById('taskSection').addEventListener('click', () => {
+                try {
+                    let latestVersion = null;
+                    let updateUrl = null;
 
-        if (!document.getElementById('taskSettings').classList.contains('hidden')) return;
+                    // 尝试主站检查
+                    try {
+                        const response = await fetch('https://api.github.com/repos/RSPqfgn/XMWplus/releases/latest');
+                        const data = await response.json();
+                        latestVersion = data.tag_name.replace('v', '');
+                        updateUrl = data.html_url;
+                    } catch {
+                        // 主站失败尝试镜像站
+                        const mirrorResponse = await fetch('https://bgithub.xyz/RSPqfgn/XMWplus/releases');
+                        const mirrorHtml = await mirrorResponse.text();
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(mirrorHtml, 'text/html');
+                        const releaseLink = doc.querySelector('.release-header a[href*="/releases/tag/"]');
+                        latestVersion = releaseLink?.href.split('/').pop().replace(/^v/, '');
+                        updateUrl = 'https://bgithub.xyz/RSPqfgn/XMWplus/releases';
+                    }
 
-        document.getElementById('taskSettings').classList.remove('hidden');
+                    if (!latestVersion) {
+                        throw new Error('无法获取版本信息');
+                    }
 
-        document.getElementById('customSettings').classList.add('hidden');
+                    const currentVersion = GM_info.script.version;
+                    //const currentVersion = '1.0.0';//测试用
 
-        // 高亮逻辑（删除对 advancedSection 的引用）
+                    if (latestVersion > currentVersion) {
+                        // 有新版本时将按钮改为前往更新
+                        checkUpdateBtn.textContent = '前往更新';
+                        checkUpdateBtn.disabled = false;
+                        checkUpdateBtn.style.backgroundColor = '#007bff';
+                        // 移除原有的事件监听器
+                        checkUpdateBtn.removeEventListener('click', handleUpdateCheck);
+                        // 添加新的跳转事件
+                        checkUpdateBtn.onclick = () => window.open(updateUrl, '_blank');
+                    } else {
+                        // 无新版本时恢复按钮状态
+                        checkUpdateBtn.textContent = '检查更新';
+                        checkUpdateBtn.disabled = false;
+                        checkUpdateBtn.style.backgroundColor = '#007bff';
+                        updateStatus.textContent = '已是最新版本';
+                    }
+                } catch (error) {
+                    // 发生错误时恢复按钮状态
+                    checkUpdateBtn.textContent = '检查更新';
+                    checkUpdateBtn.disabled = false;
+                    checkUpdateBtn.style.backgroundColor = '#007bff';
+                    updateStatus.textContent = '检查失败';
+                }
+            }
 
-        document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            // 绑定检查更新事件
+            checkUpdateBtn.addEventListener('click', handleUpdateCheck);
 
-        document.getElementById('taskSection').classList.add('active');
+            // 统一处理标签点击的函数
+            function handleSectionClick(clickedSection, targetSettings) {
+    // 如果目标面板已经显示则返回
+    if (!document.getElementById(targetSettings).classList.contains('hidden')) return;
+    
+    // 隐藏所有设置面板
+    document.querySelectorAll('[id$="Settings"]').forEach(el => el.classList.add('hidden'));
+    
+    // 显示目标设置面板
+    document.getElementById(targetSettings).classList.remove('hidden');
+    
+    // 更新标签高亮状态
+    document.querySelectorAll('.section').forEach(section => 
+        section.classList.remove('active')
+    );
+    document.getElementById(clickedSection).classList.add('active');
+}
 
-    });
+// 绑定事件时统一调用方式
+document.getElementById('taskSection').addEventListener('click', () => 
+    handleSectionClick('taskSection', 'taskSettings')
+);
 
-    // 界面定制按钮点击事件
+document.getElementById('customSection').addEventListener('click', () => 
+    handleSectionClick('customSection', 'customSettings')
+);
 
-    document.getElementById('customSection').addEventListener('click', () => {
-
-        if (!document.getElementById('customSettings').classList.contains('hidden')) return;
-
-        document.getElementById('customSettings').classList.remove('hidden');
-
-        document.getElementById('taskSettings').classList.add('hidden');
-
-        // 高亮逻辑（删除对 advancedSection 的引用）
-
-        document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
-
-        document.getElementById('customSection').classList.add('active');
-
-    });
-
+document.getElementById('aboutSection').addEventListener('click', () => 
+    handleSectionClick('aboutSection', 'aboutSettings')
+);
 },
 
     preConfirm: () => {
@@ -710,6 +952,7 @@ didOpen: () => {
         settings.removeMagicReview = document.querySelector('input[name="removeMagicReview"]').checked; // 获取移除魔力测评状态
         settings.taskCenterDoNotDisturb = document.querySelector('input[name="taskCenterDoNotDisturb"]').checked; // 获取任务中心免打扰状态
         settings.adaptiveTextbox = document.querySelector('input[name="adaptiveTextbox"]').checked;// 获取自适应文本框状态
+        settings.autoCheckUpdate = document.querySelector('input[name="autoCheckUpdate"]').checked; // 获取自动检查更新状态
 
         GM_setValue('autoReceive', settings.autoReceive); // 保存领取奖励状态
         GM_setValue('autoSignIn', settings.autoSignIn); // 保存签到状态
@@ -722,6 +965,7 @@ didOpen: () => {
         GM_setValue('removeMagicReview', settings.removeMagicReview); // 保存移除魔力测评状态
         GM_setValue('taskCenterDoNotDisturb', settings.taskCenterDoNotDisturb); // 保存任务中心免打扰状态
         GM_setValue('adaptiveTextbox', settings.adaptiveTextbox);// 保存自适应文本框状态
+        GM_setValue('autoCheckUpdate', settings.autoCheckUpdate); // 保存自动检查更新状态
 
         return Swal.fire({
             title: '设置已保存',
@@ -742,18 +986,19 @@ didOpen: () => {
 });}
 
 // ==更新检查功能==
-(function checkUpdate() {
+(function checkUpdate(isManual = false) {
     // 获取当前版本
     const currentVersion = GM_info.script.version;
-    //const currentVersion = '1.0.0';//测试用
+    //const currentVersion = "1.0.0";//测试用
     
-    // 每日检查限制
-    const lastCheckDate = GM_getValue('lastUpdateCheck', '');
-    const today = new Date().toISOString().split('T')[0];
-    
-    // 每天只检查一次
-    if (today === lastCheckDate) return;//测试时禁用
-    GM_setValue('lastUpdateCheck', today);
+   // 每日检查限制（仅自动检查时生效）
+    if (!isManual) {
+        const lastCheckDate = GM_getValue('lastUpdateCheck', '');
+        const today = new Date().toISOString().split('T')[0];
+        
+        if (!settings.autoCheckUpdate || today === lastCheckDate) return;
+        GM_setValue('lastUpdateCheck', today);
+    }
 
     // 版本比较函数
     function compareVersions(v1, v2) {
@@ -770,94 +1015,110 @@ didOpen: () => {
     }
 
     // 显示更新弹窗
-function showUpdateAlert(version, url) {
-    Swal.fire({
-        title: '发现新版本',
-        html: `当前版本：v${currentVersion}<br>最新版本：v${version}`,
-        icon: 'info',
-        showCancelButton: true,
-        showConfirmButton: true,
-        showCloseButton: true,
-        confirmButtonText: '立即更新',
-        cancelButtonText: '镜像站更新',
-        focusConfirm: false,
-        buttonsStyling: true,
-        allowOutsideClick: true,  // 允许点击外部关闭
-        allowEscapeKey: true,     // 允许ESC关闭
-        customClass: {
-            closeButton: 'swal2-close'
-        },
-        didOpen: () => {
-            // 获取按钮元素
-            const confirmBtn = Swal.getConfirmButton()
-            const cancelBtn = Swal.getCancelButton()
+    function showUpdateAlert(version, url) {
+        // 先显示检查结果
+        showResult("发现新版本！");
 
-            // 覆盖确认按钮点击事件
-            confirmBtn.onclick = (e) => {
-                e.preventDefault()
-                window.open(url, '_blank')
-                Swal.enableButtons() // 保持按钮可点击状态
-            }
+        Swal.fire({
+            title: '发现新版本',
+            html: `当前版本：v${currentVersion}<br>最新版本：v${version}`,
+            icon: 'info',
+            showCancelButton: true,
+            showConfirmButton: true,
+            showCloseButton: true,
+            confirmButtonText: '立即更新',
+            cancelButtonText: '镜像站更新',
+            focusConfirm: false,
+            buttonsStyling: true,
+            allowOutsideClick: true,  // 允许点击外部关闭
+            allowEscapeKey: true,     // 允许ESC关闭
+            customClass: {
+                closeButton: 'swal2-close'
+            },
+            didOpen: () => {
+                // 获取按钮元素
+                const confirmBtn = Swal.getConfirmButton()
+                const cancelBtn = Swal.getCancelButton()
 
-            // 覆盖取消按钮点击事件
-            cancelBtn.onclick = (e) => {
-                e.preventDefault()
-                window.open('https://kkgithub.com/RSPqfgn/XMWplus/releases', '_blank')
-                Swal.enableButtons()
-            }
-        }
-    }).then((result) => {
-        // 仅处理关闭按钮的关闭操作
-        if (result.dismiss === Swal.DismissReason.close) {
-            Swal.close()
-        }
-    });
-}
-    // 尝试主站检查更新
-    GM_xmlhttpRequest({
-        method: "GET",
-        url: "https://api.github.com/repos/RSPqfgn/XMWplus/releases/latest",
-        timeout: 5000,
-        onload: function(response) {
-            try {
-                const data = JSON.parse(response.responseText);
-                const latestVersion = data.tag_name.replace(/^v/, '');
-                
-                if (compareVersions(currentVersion, latestVersion) < 0) {
-                    showUpdateAlert(latestVersion, data.html_url);
+                // 覆盖确认按钮点击事件
+                confirmBtn.onclick = (e) => {
+                    e.preventDefault()
+                    window.open(url, '_blank')
+                    Swal.enableButtons() // 保持按钮可点击状态
                 }
-            } catch {
-                checkMirrorUpdate();
-            }
-        },
-        onerror: checkMirrorUpdate,
-        ontimeout: checkMirrorUpdate
-    });
 
-    // 镜像站检查更新（备用方案）
-    function checkMirrorUpdate() {
-        GM_xmlhttpRequest({
-            method: "GET",
-            url: "https://kkgithub.com/RSPqfgn/XMWplus/releases",
-            timeout: 5000,
-            onload: function(response) {
-                try {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(response.responseText, 'text/html');
-                    const releaseLink = doc.querySelector('.release-header a[href*="/releases/tag/"]');
-                    
-                    if (releaseLink) {
-                        const version = releaseLink.href.split('/').pop().replace(/^v/, '');
-                        if (compareVersions(currentVersion, version) < 0) {
-                            showUpdateAlert(version, 'https://kkgithub.com/RSPqfgn/XMWplus/releases');
-                        }
-                    }
-                } catch (error) {
-                    console.log('更新检查失败');
+                // 覆盖取消按钮点击事件
+                cancelBtn.onclick = (e) => {
+                    e.preventDefault()
+                    window.open('https://bgithub.xyz/RSPqfgn/XMWplus/releases', '_blank')
+                    Swal.enableButtons()
                 }
+            }
+        }).then((result) => {
+            // 仅处理关闭按钮的关闭操作
+            if (result.dismiss === Swal.DismissReason.close) {
+                Swal.close()
             }
         });
     }
+
+    // 主检查逻辑
+    async function performCheck() {
+        try {
+            showLoading();
+            
+            let latestVersion = null;
+
+            // 尝试主站检查
+            const mainResult = await new Promise((resolve, reject) => {
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: "https://api.github.com/repos/RSPqfgn/XMWplus/releases/latest",
+                    timeout: 5000,
+                    onload: resolve,
+                    onerror: reject,
+                    ontimeout: reject
+                });
+            });
+
+            try {
+                const data = JSON.parse(mainResult.responseText);
+                latestVersion = data.tag_name.replace(/^v/, '');
+            } catch {
+                // 主站失败尝试镜像站
+                const mirrorResult = await new Promise(resolve => {
+                    GM_xmlhttpRequest({
+                        method: "GET",
+                        url: "https://bgithub.xyz/RSPqfgn/XMWplus/releases",
+                        onload: resolve,
+                        timeout: 5000
+                    });
+                });
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(mirrorResult.responseText, 'text/html');
+                const releaseLink = doc.querySelector('.release-header a[href*="/releases/tag/"]');
+                latestVersion = releaseLink?.href.split('/').pop().replace(/^v/, '');
+            }
+
+            if (!latestVersion) {
+                showResult("检查失败", false);
+                return;
+            }
+
+            if (compareVersions(currentVersion, latestVersion) < 0) {
+                showUpdateAlert(latestVersion);
+            } else {
+                showResult("已是最新版本");
+            }
+        } catch (error) {
+            showResult("检查失败", false);
+            console.error('更新检查失败:', error);
+        }
+    }
+
+    // 触发检查
+    performCheck();
 })();
 // ==更新检查功能结束==
 
@@ -1080,7 +1341,7 @@ window.onload = function() {
     
     const a = document.createElement('a');
     a.name = '编辑信息';
-    a.title = '由XMWplus添加'; // 修改title提示
+    a.title = '编辑信息（由XMWplus添加）'; // 修改title提示
     a.href = `https://world.xiaomawang.com/w/release/${compositionId}`;
     a.target = '_blank';
     a.textContent = '编辑信息';
