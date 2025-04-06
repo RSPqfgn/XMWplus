@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         小码王Plus
-// @version      1.6.0
+// @version      1.6.1
 // @description  使你的小码王更易于使用
 // @author       RSPqfgn
 // @match        https://world.xiaomawang.com/*
