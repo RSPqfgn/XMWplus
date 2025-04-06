@@ -13,31 +13,58 @@
 // @grant        GM_addStyle
 // @require      https://cdn.bootcdn.net/ajax/libs/sweetalert2/11.11.0/sweetalert2.all.min.js
 // ==/UserScript==
-
+// 代码真是越来越史山了……
 // 添加CSS样式规则
 GM_addStyle(`
 body[data-page="index"] .sticky-outer-wrapper:not(.active) .xiaoma__3Eq2i {
     display: none !important;
 }
+body:not([data-page="index"]) .xmwplus-button {
+    color: #333 !important;
+}
 `);
 
-// 监听滚动事件来控制logo显示
 function updateLogoVisibility() {
     // 检查当前页面URL是否为首页
-    if (window.location.href === 'https://world.xiaomawang.com/w/index') {
+    const isHomePage = window.location.href === 'https://world.xiaomawang.com/w/index';
+    // 设置页面标识
+    document.body.setAttribute('data-page', isHomePage ? 'index' : '');
+
+    // 如果是首页，控制logo和按钮显示
+    if (isHomePage) {
         const stickyWrapper = document.querySelector('.sticky-outer-wrapper');
         if (stickyWrapper) {
+            // 控制logo显示
             if (window.scrollY > 0) {
                 stickyWrapper.classList.add('active');
             } else {
                 stickyWrapper.classList.remove('active');
             }
+            // 更新XMW+按钮颜色
+            const xmwPlusButton = document.querySelector('.xmwplus-button');
+            if (xmwPlusButton) {
+                xmwPlusButton.style.color = window.scrollY > 0 ? '#333' : 'white';
+            }
         }
-        // 添加页面标识
-        document.body.setAttribute('data-page', 'index');
     }
 }
 
+// 监听URL变化
+window.addEventListener('popstate', updateLogoVisibility);
+
+// 重写history方法以捕获pushState和replaceState
+const originalPushState = history.pushState;
+const originalReplaceState = history.replaceState;
+
+history.pushState = function() {
+    originalPushState.apply(this, arguments);
+    updateLogoVisibility();
+};
+
+history.replaceState = function() {
+    originalReplaceState.apply(this, arguments);
+    updateLogoVisibility();
+};
 window.addEventListener('scroll', updateLogoVisibility);
 
 // 在页面加载完成后立即检查状态
@@ -92,6 +119,9 @@ function addXMWPlusButton() {
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
+        }
+        .sticky-outer-wrapper:not(.active) .xmwplus-button {
+            color: white;
         }
         .xmwplus-button:hover {
             color: #007bff;
