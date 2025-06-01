@@ -92,7 +92,7 @@ const settings = {
 
 // 注册命令
 GM_registerMenuCommand('查询', performQuery);
-GM_registerMenuCommand('自动任务', autoCompleteTask);
+//GM_registerMenuCommand('自动任务', autoCompleteTask);// 自动任务功能暂时弃坑
 GM_registerMenuCommand('设置', openSettingsDialog);
 
 // 添加XMW+按钮和下拉菜单
@@ -169,11 +169,12 @@ function addXMWPlusButton() {
             <a class="xmwplus-button">XMW+</a>
             <ul class="xmwplus-menu">
                 <li><a class="xmwplus-menu-item" id="xmwplus-query">查询</a></li>
-                <li><a class="xmwplus-menu-item" id="xmwplus-task">自动任务</a></li>
+
                 <li><a class="xmwplus-menu-item" id="xmwplus-settings">设置</a></li>
             </ul>
         </div>
     `;
+                //<li><a class="xmwplus-menu-item" id="xmwplus-task">自动任务</a></li>
 
     // 插入到社区共建按钮后
     const communityBuildingLi = Array.from(mainNav.children).find(li => 
@@ -186,7 +187,7 @@ function addXMWPlusButton() {
 
     // 添加点击事件
     document.getElementById('xmwplus-query').addEventListener('click', performQuery);
-    document.getElementById('xmwplus-task').addEventListener('click', autoCompleteTask);
+    //document.getElementById('xmwplus-task').addEventListener('click', autoCompleteTask);
     document.getElementById('xmwplus-settings').addEventListener('click', openSettingsDialog);
 }
 
@@ -213,6 +214,7 @@ window.addEventListener('load', () => {
 
 // 在页面加载完成后添加按钮
 window.addEventListener('load', addXMWPlusButton);
+
 // 查询功能
 function performQuery() {
     Swal.fire({
@@ -680,23 +682,173 @@ function performQuery() {
         }
     });
 }
-
-//自动任务
+/*
+//自动任务（暂时弃坑）
 function autoCompleteTask() {
+    // 获取自动任务设置
+    const autoTaskSettings = {
+        dailySignIn: GM_getValue('dailySignIn', true),
+        dailyLike: GM_getValue('dailyLike', true),
+        dailyFavorite: GM_getValue('dailyFavorite', false),
+        workPublish: GM_getValue('workPublish', false),
+        autoStartOnLogin: GM_getValue('autoStartOnLogin', false)
+    };
+
     Swal.fire({
         title: '自动任务',
         html: `
-            <div>正在开发，敬请期待</div>
-            <div style="text-decoration: line-through; color: gray;">屑红石镐又在画饼了</div>
+            <style>
+            .auto-task-container {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                text-align: left;
+                padding: 15px;
+            }
+            .task-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px;
+                border-radius: 8px;
+                transition: background-color 0.2s;
+            }
+            .task-item:hover {
+                background-color: #f5f5f5;
+            }
+            .task-item input[type="checkbox"] {
+                appearance: none;
+                width: 18px;
+                height: 18px;
+                border: 2px solid #ddd;
+                border-radius: 4px;
+                cursor: pointer;
+                position: relative;
+                transition: all 0.2s;
+            }
+            .task-item input[type="checkbox"]:checked {
+                background-color: #007bff;
+                border-color: #007bff;
+            }
+            .task-item input[type="checkbox"]:checked::after {
+                content: '';
+                position: absolute;
+                left: 5px;
+                top: 2px;
+                width: 5px;
+                height: 10px;
+                border: solid white;
+                border-width: 0 2px 2px 0;
+                transform: rotate(45deg);
+            }
+            .task-item label {
+                font-size: 14px;
+                color: #333;
+                cursor: pointer;
+                user-select: none;
+            }
+            .switch-container {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px;
+                border-radius: 8px;
+                margin-top: 5px;
+                border-top: 1px solid #eee;
+            }
+            .switch-container label:not(.switch) {
+                order: -1;
+                margin-right: auto;
+            }
+            .switch {
+                position: relative;
+                display: inline-block;
+                width: 40px;
+                height: 20px;
+            }
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                transition: .4s;
+                border-radius: 20px;
+            }
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 16px;
+                width: 16px;
+                left: 2px;
+                bottom: 2px;
+                background-color: white;
+                transition: .4s;
+                border-radius: 50%;
+            }
+            input:checked + .slider {
+                background-color: #007bff;
+            }
+            input:checked + .slider:before {
+                transform: translateX(20px);
+            }
+            </style>
+            <div class="auto-task-container">
+                <div class="task-item">
+                    <input type="checkbox" id="dailySignIn" ${autoTaskSettings.dailySignIn ? 'checked' : ''}>
+                    <label for="dailySignIn">每日签到</label>
+                </div>
+                <div class="task-item">
+                    <input type="checkbox" id="dailyLike" ${autoTaskSettings.dailyLike ? 'checked' : ''}>
+                    <label for="dailyLike">每日点赞</label>
+                </div>
+                <div class="task-item">
+                    <input type="checkbox" id="dailyFavorite" ${autoTaskSettings.dailyFavorite ? 'checked' : ''}>
+                    <label for="dailyFavorite">每日收藏</label>
+                </div>
+
+                <div class="switch-container">
+                    <label class="switch">
+                        <input type="checkbox" id="autoStartOnLogin" ${autoTaskSettings.autoStartOnLogin ? 'checked' : ''}>
+                        <span class="slider"></span>
+                    </label>
+                    <label for="autoStartOnLogin">每日首次登录自动开始</label>
+                </div>
+            </div>
         `,
-        showCancelButton: false,
+        showCancelButton: true,
         showConfirmButton: true,
-        confirmButtonText: '确定',
+        confirmButtonText: '开始',
+        cancelButtonText: '取消',
         width: '400px',
-        padding: '20px'
+        padding: '20px',
+        confirmButtonColor: '#007bff',
+        cancelButtonColor: '#6c757d',
+        buttonsStyling: true,
+        didOpen: () => {
+            // 添加复选框change事件监听
+            ['dailySignIn', 'dailyLike', 'dailyFavorite', 'workPublish', 'autoStartOnLogin'].forEach(id => {
+                const checkbox = Swal.getPopup().querySelector(`#${id}`);
+                checkbox.addEventListener('change', (e) => {
+                    GM_setValue(id, e.target.checked);
+                });
+            });
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 开始执行自动任务
+            startAutoTasks();
+        }
     });
 }
-
+*/
 //设置
 function openSettingsDialog() {
     Swal.fire({
@@ -748,39 +900,45 @@ function openSettingsDialog() {
     display: none; /* 隐藏 */
 }
 
-/* 其他勾选框样式 */
+/* 开关按钮样式 */
 .custom-checkbox {
     display: flex;
     align-items: center;
-    margin-bottom: 10px; /* 增加标签间距 */
+    justify-content: space-between;
+    margin-bottom: 10px;
 }
 
 .custom-checkbox input[type="checkbox"] {
-    appearance: none; /* 关闭默认样式 */
-    width: 24px; /* 自定义勾选框大小 */
-    height: 24px; /* 自定义勾选框大小 */
-    border: 2px solid #007bff; /* 勾选框边框 */
-    border-radius: 4px; /* 勾选框圆角 */
-    outline: none; /* 关闭默认高亮 */
-    cursor: pointer; /* 鼠标手势 */
-    position: relative; /* 设为相对定位 */
-    margin-right: 10px; /* 标签和勾选框间隔 */
-    transition: background-color 0.3s, border-color 0.3s; /* 动效 */
+    appearance: none;
+    width: 48px;
+    height: 24px;
+    background-color: #ccc;
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: background-color 0.3s;
+    order: 2;
 }
 
 .custom-checkbox input[type="checkbox"]:checked {
-    background-color: #007bff; /* 勾选框背景颜色 */
-    border-color: #007bff; /* 选中后的边框颜色 */
+    background-color: #007bff;
+}
+
+.custom-checkbox input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
 }
 
 .custom-checkbox input[type="checkbox"]:checked::before {
-    content: '✔'; /* 勾选后显示的符号 */
-    position: absolute;
-    left: 50%; /* 符号水平居中 */
-    top: 50%; /* 符号垂直居中 */
-    transform: translate(-50%, -50%); /* 调整符号位置 */
-    color: white; /* 符号颜色 */
-    font-size: 18px; /* 符号大小 */
+    transform: translateX(24px);
 }
 .about-section {
     margin-top: 20px;
@@ -867,7 +1025,6 @@ function openSettingsDialog() {
             confirmButton: 'custom-confirm-button',
             cancelButton: 'custom-cancel-button'
         },
-        // 修改后的 didOpen 回调：
 
 didOpen: () => {
             // 获取检查更新按钮和状态文本元素
@@ -882,56 +1039,23 @@ didOpen: () => {
                 checkUpdateBtn.style.backgroundColor = '#ccc';
                 updateStatus.textContent = '';
 
-                try {
-                    let latestVersion = null;
-                    let updateUrl = null;
-
-                    // 尝试主站检查
-                    try {
-                        const response = await fetch('https://api.github.com/repos/RSPqfgn/XMWplus/releases/latest');
-                        const data = await response.json();
-                        latestVersion = data.tag_name.replace('v', '');
-                        updateUrl = data.html_url;
-                    } catch {
-                        // 主站失败尝试镜像站
-                        const mirrorResponse = await fetch('https://bgithub.xyz/RSPqfgn/XMWplus/releases');
-                        const mirrorHtml = await mirrorResponse.text();
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(mirrorHtml, 'text/html');
-                        const releaseLink = doc.querySelector('.release-header a[href*="/releases/tag/"]');
-                        latestVersion = releaseLink?.href.split('/').pop().replace(/^v/, '');
-                        updateUrl = 'https://bgithub.xyz/RSPqfgn/XMWplus/releases';
-                    }
-
-                    if (!latestVersion) {
-                        throw new Error('无法获取版本信息');
-                    }
-
-                    const currentVersion = GM_info.script.version;
-                    //const currentVersion = '1.0.0';//测试用
-
-                    if (latestVersion > currentVersion) {
-                        // 有新版本时将按钮改为前往更新
-                        checkUpdateBtn.textContent = '前往更新';
-                        checkUpdateBtn.disabled = false;
-                        checkUpdateBtn.style.backgroundColor = '#007bff';
-                        // 移除原有的事件监听器
-                        checkUpdateBtn.removeEventListener('click', handleUpdateCheck);
-                        // 添加新的跳转事件
-                        checkUpdateBtn.onclick = () => window.open(updateUrl, '_blank');
-                    } else {
-                        // 无新版本时恢复按钮状态
-                        checkUpdateBtn.textContent = '检查更新';
-                        checkUpdateBtn.disabled = false;
-                        checkUpdateBtn.style.backgroundColor = '#007bff';
-                        updateStatus.textContent = '已是最新版本';
-                    }
-                } catch (error) {
-                    // 发生错误时恢复按钮状态
-                    checkUpdateBtn.textContent = '检查更新';
-                    checkUpdateBtn.disabled = false;
-                    checkUpdateBtn.style.backgroundColor = '#007bff';
+                const result = await checkForUpdate();
+                
+                // 恢复按钮状态
+                checkUpdateBtn.textContent = '检查更新';
+                checkUpdateBtn.disabled = false;
+                checkUpdateBtn.style.backgroundColor = '#007bff';
+                
+                if (result === 0) {
+                    // 无新版本
+                    updateStatus.textContent = '已是最新版本';
+                } else if (result === 1) {
+                    // 检查失败
                     updateStatus.textContent = '检查失败';
+                } else {
+                    // 有新版本，先关闭设置窗口再显示更新弹窗
+                    Swal.close();
+                    setTimeout(() => showUpdateAlert(result), 100);
                 }
             }
 
@@ -1015,91 +1139,76 @@ document.getElementById('aboutSection').addEventListener('click', () =>
     }
 });}
 
-// ==更新检查功能==
-(function checkUpdate(isManual = false) {
-    // 获取当前版本
+// 显示更新弹窗
+function showUpdateAlert(version) {
     const currentVersion = GM_info.script.version;
-    //const currentVersion = "1.0.0";//测试用
-    
-   // 每日检查限制（仅自动检查时生效）
-    if (!isManual) {
-        const lastCheckDate = GM_getValue('lastUpdateCheck', '');
-        const today = new Date().toISOString().split('T')[0];
-        
-        if (!settings.autoCheckUpdate || today === lastCheckDate) return;
-        GM_setValue('lastUpdateCheck', today);
-    }
 
-    // 版本比较函数
-    function compareVersions(v1, v2) {
-        const parts1 = v1.split('.').map(Number);
-        const parts2 = v2.split('.').map(Number);
-        
-        for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-            const p1 = parts1[i] || 0;
-            const p2 = parts2[i] || 0;
-            if (p1 < p2) return -1;
-            if (p1 > p2) return 1;
+    Swal.fire({
+        title: '发现新版本',
+        html: `当前版本：v${currentVersion}<br>最新版本：v${version}`,
+        icon: 'info',
+        showCancelButton: true,
+        showConfirmButton: true,
+        showCloseButton: true,
+        confirmButtonText: '立即更新',
+        cancelButtonText: '备用站更新',
+        focusConfirm: false,
+        buttonsStyling: true,
+        allowOutsideClick: true,  // 允许点击外部关闭
+        allowEscapeKey: true,     // 允许ESC关闭
+        customClass: {
+            closeButton: 'swal2-close'
+        },
+        didOpen: () => {
+            // 获取按钮元素
+            const confirmBtn = Swal.getConfirmButton()
+            const cancelBtn = Swal.getCancelButton()
+
+            // 覆盖确认按钮点击事件
+            confirmBtn.onclick = (e) => {
+                e.preventDefault()
+                window.open(`https://github.com/RSPqfgn/XMWplus/releases/tag/${version}`, '_blank')
+                Swal.enableButtons() // 保持按钮可点击状态
+            }
+
+            // 覆盖取消按钮点击事件
+            cancelBtn.onclick = (e) => {
+                e.preventDefault()
+                window.open('https://gitee.com/RSP_qfgn/XMWplus/releases', '_blank')
+                Swal.enableButtons()
+            }
         }
-        return 0;
+    }).then((result) => {
+        // 仅处理关闭按钮的关闭操作
+        if (result.dismiss === Swal.DismissReason.close) {
+            Swal.close()
+        }
+    });
+}
+
+// 版本比较函数
+function compareVersions(v1, v2) {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+        const p1 = parts1[i] || 0;
+        const p2 = parts2[i] || 0;
+        if (p1 < p2) return -1;
+        if (p1 > p2) return 1;
     }
+    return 0;
+}
 
-    // 显示更新弹窗
-    function showUpdateAlert(version, url) {
-        // 先显示检查结果
-        showResult("发现新版本！");
+// 检查更新函数，返回新版本号或状态码
+async function checkForUpdate() {
+    const currentVersion = GM_info.script.version;
+    //const currentVersion = '1.0.0';//测试用
+    let latestVersion = null;
 
-        Swal.fire({
-            title: '发现新版本',
-            html: `当前版本：v${currentVersion}<br>最新版本：v${version}`,
-            icon: 'info',
-            showCancelButton: true,
-            showConfirmButton: true,
-            showCloseButton: true,
-            confirmButtonText: '立即更新',
-            cancelButtonText: '镜像站更新',
-            focusConfirm: false,
-            buttonsStyling: true,
-            allowOutsideClick: true,  // 允许点击外部关闭
-            allowEscapeKey: true,     // 允许ESC关闭
-            customClass: {
-                closeButton: 'swal2-close'
-            },
-            didOpen: () => {
-                // 获取按钮元素
-                const confirmBtn = Swal.getConfirmButton()
-                const cancelBtn = Swal.getCancelButton()
-
-                // 覆盖确认按钮点击事件
-                confirmBtn.onclick = (e) => {
-                    e.preventDefault()
-                    window.open(url, '_blank')
-                    Swal.enableButtons() // 保持按钮可点击状态
-                }
-
-                // 覆盖取消按钮点击事件
-                cancelBtn.onclick = (e) => {
-                    e.preventDefault()
-                    window.open('https://bgithub.xyz/RSPqfgn/XMWplus/releases', '_blank')
-                    Swal.enableButtons()
-                }
-            }
-        }).then((result) => {
-            // 仅处理关闭按钮的关闭操作
-            if (result.dismiss === Swal.DismissReason.close) {
-                Swal.close()
-            }
-        });
-    }
-
-    // 主检查逻辑
-    async function performCheck() {
+    try {
+        // 尝试主站检查
         try {
-            showLoading();
-            
-            let latestVersion = null;
-
-            // 尝试主站检查
             const mainResult = await new Promise((resolve, reject) => {
                 GM_xmlhttpRequest({
                     method: "GET",
@@ -1111,39 +1220,69 @@ document.getElementById('aboutSection').addEventListener('click', () =>
                 });
             });
 
+            const data = JSON.parse(mainResult.responseText);
+            if (!data || !data.tag_name) throw new Error('无效的响应数据');
+            latestVersion = data.tag_name.replace(/^v/, '');
+        } catch (error) {
+            // 主站失败尝试镜像站
             try {
-                const data = JSON.parse(mainResult.responseText);
-                latestVersion = data.tag_name.replace(/^v/, '');
-            } catch {
-                // 主站失败尝试镜像站
-                const mirrorResult = await new Promise(resolve => {
+                const mirrorResult = await new Promise((resolve, reject) => {
                     GM_xmlhttpRequest({
                         method: "GET",
-                        url: "https://bgithub.xyz/RSPqfgn/XMWplus/releases",
+                        url: "https://gitee.com/api/v5/repos/RSP_qfgn/XMWplus/releases/latest",
                         onload: resolve,
+                        onerror: reject,
                         timeout: 5000
                     });
                 });
 
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(mirrorResult.responseText, 'text/html');
-                const releaseLink = doc.querySelector('.release-header a[href*="/releases/tag/"]');
-                latestVersion = releaseLink?.href.split('/').pop().replace(/^v/, '');
+                const mirrorData = JSON.parse(mirrorResult.responseText);
+                if (!mirrorData || !mirrorData.tag_name) throw new Error('无效的响应数据');
+                latestVersion = mirrorData.tag_name.replace(/^v/, '');
+            } catch (mirrorError) {
+                return 1; // 错误状态
             }
+        }
 
-            if (!latestVersion) {
-                showResult("检查失败", false);
-                return;
-            }
+        if (!latestVersion) return 1; // 错误状态
 
-            if (compareVersions(currentVersion, latestVersion) < 0) {
-                showUpdateAlert(latestVersion);
-            } else {
-                showResult("已是最新版本");
-            }
-        } catch (error) {
+        // 比较版本
+        const compareResult = compareVersions(currentVersion, latestVersion);
+        if (compareResult < 0) {
+            return latestVersion; // 有新版本，返回版本号
+        } else {
+            return 0; // 无新版本
+        }
+    } catch (error) {
+        console.error('更新检查失败:', error);
+        return 1; // 错误状态
+    }
+}
+
+// 自动检查更新
+(function autoCheckUpdate(isManual = false) {
+    // 每日检查限制（仅自动检查时生效）
+    if (!isManual) {
+        const lastCheckDate = GM_getValue('lastUpdateCheck', '');
+        const today = new Date().toISOString().split('T')[0];
+        
+        if (!settings.autoCheckUpdate || today === lastCheckDate) return;
+        GM_setValue('lastUpdateCheck', today);
+    }
+
+
+
+    // 执行检查
+    async function performCheck() {
+        showLoading();
+        const result = await checkForUpdate();
+        
+        if (result === 0) {
+            showResult("已是最新版本");
+        } else if (result === 1) {
             showResult("检查失败", false);
-            console.error('更新检查失败:', error);
+        } else {
+            showUpdateAlert(result);
         }
     }
 
