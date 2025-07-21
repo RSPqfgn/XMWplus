@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         小码王Plus
-// @version      1.6.2
+// @version      1.7.0
 // @description  使你的小码王更易于使用
 // @author       RSPqfgn
 // @match        https://world.xiaomawang.com/*
@@ -74,7 +74,7 @@ window.addEventListener('load', () => {
 });
 (function () {
     'use strict';
-// 初始化设置
+    // 初始化设置
 const settings = {
     autoReceive: GM_getValue('autoReceive', true), // 自动领取奖励
     autoSignIn: GM_getValue('autoSignIn', true), // 自动签到
@@ -88,8 +88,16 @@ const settings = {
     taskCenterDoNotDisturb: GM_getValue('taskCenterDoNotDisturb', false), // 任务中心免打扰
     adaptiveTextbox: GM_getValue('adaptiveTextbox', false), // 自适应文本框
     autoCheckUpdate: GM_getValue('autoCheckUpdate', true), // 自动检查更新
-    autoNotifyAnnouncement: GM_getValue('autoNotifyAnnouncement', true) // 自动通知公告
+    autoShowAnnouncement: GM_getValue('autoShowAnnouncement', true), // 每天首次加载时自动弹出公告
 };
+
+    // 每日公告检查
+    const today = new Date().toDateString();
+    const lastAnnouncementDate = GM_getValue('lastAnnouncementDate', '');
+    if (settings.autoShowAnnouncement && today !== lastAnnouncementDate) {
+        openAnnouncementDialog();
+        GM_setValue('lastAnnouncementDate', today);
+    }
 
 // 注册命令
 GM_registerMenuCommand('公告', openAnnouncementDialog); 
@@ -217,7 +225,7 @@ window.addEventListener('load', () => {
 // 在页面加载完成后添加按钮
 window.addEventListener('load', addXMWPlusButton);
 
-// 新增的公告功能函数
+// 公告功能函数
 async function openAnnouncementDialog() {
     let announcements = [];
 
@@ -992,6 +1000,8 @@ function autoCompleteTask() {
 function openSettingsDialog() {
     Swal.fire({
         title: '设置',
+        width: '400px',
+        height: '600px',
         html:  `
 <style>
 /* 样式定义 */
@@ -1102,12 +1112,54 @@ function openSettingsDialog() {
 
 <!-- 自动任务设置页面 -->
 <div id="taskSettings">
-    <!-- 原有自动任务设置内容保持不变 -->
+    <label class="custom-checkbox">
+        <input type="checkbox" name="autoReceive" ${settings.autoReceive ? 'checked' : ''}>
+        自动领取奖励
+    </label>
+    <label class="custom-checkbox">
+        <input type="checkbox" name="autoSignIn" ${settings.autoSignIn ? 'checked' : ''}>
+        自动签到
+    </label>
+    <label class="custom-checkbox">
+        <input type="checkbox" name="autoLoadComments" ${settings.autoLoadComments ? 'checked' : ''}>
+        自动展开评论
+    </label>
+    <label class="custom-checkbox">
+        <input type="checkbox" name="autoExpandReplies" ${settings.autoExpandReplies ? 'checked' : ''}>
+        自动展开子回复
+    </label>
+    <label class="custom-checkbox">
+        <input type="checkbox" name="autoClickMore" ${settings.autoClickMore ? 'checked' : ''}>
+        自动点击"查看更多"
+    </label>
+    <label class="custom-checkbox">
+        <input type="checkbox" name="messageDoNotDisturb" ${settings.messageDoNotDisturb ? 'checked' : ''}>
+        消息免打扰
+    </label>
 </div>
 
 <!-- 界面定制设置页面 -->
 <div id="customSettings" class="hidden">
-    <!-- 原有界面定制设置内容保持不变 -->
+    <label class="custom-checkbox">
+        <input type="checkbox" name="removeDynamicRedDot" ${settings.removeDynamicRedDot ? 'checked' : ''}>
+        移除动态红点
+    </label>
+    <label class="custom-checkbox">
+        <input type="checkbox" name="removeAvatarFrame" ${settings.removeAvatarFrame ? 'checked' : ''}>
+        移除头像框
+    </label>
+    <label class="custom-checkbox">
+        <input type="checkbox" name="removeMagicReview" ${settings.removeMagicReview ? 'checked' : ''}>
+        移除魔力测评
+    </label>
+    <label class="custom-checkbox">
+        <input type="checkbox" name="taskCenterDoNotDisturb" ${settings.taskCenterDoNotDisturb ? 'checked' : ''}>
+        任务中心免打扰
+    </label>
+    <label class="custom-checkbox">
+        <input type="checkbox" name="adaptiveTextbox" ${settings.adaptiveTextbox ? 'checked' : ''}>
+        自适应文本框
+    </label>
 </div>
 
 <!-- 高级设置页面 -->
@@ -1118,8 +1170,8 @@ function openSettingsDialog() {
             每天自动检查更新
         </label>
         <label class="custom-checkbox">
-            <input type="checkbox" name="autoNotifyAnnouncement" ${settings.autoNotifyAnnouncement ? 'checked' : ''}>
-            有新公告时自动提醒
+            <input type="checkbox" name="autoShowAnnouncement" ${settings.autoShowAnnouncement ? 'checked' : ''}>
+            每天首次加载时自动弹出公告
         </label>
         <div style="margin-top: 15px;">
             <button id="checkUpdateBtn" style="background-color: #007bff; color: white; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; transition: background-color 0.3s;">手动检查更新</button>
@@ -1194,6 +1246,7 @@ function openSettingsDialog() {
             settings.taskCenterDoNotDisturb = document.querySelector('input[name="taskCenterDoNotDisturb"]').checked; // 获取任务中心免打扰状态
             settings.adaptiveTextbox = document.querySelector('input[name="adaptiveTextbox"]').checked; // 获取自适应文本框状态
             settings.autoCheckUpdate = document.querySelector('input[name="autoCheckUpdate"]').checked; // 获取自动检查更新状态
+            settings.autoShowAnnouncement = document.querySelector('input[name="autoShowAnnouncement"]').checked; // 获取自动弹出公告状态
 
             // 保存设置
             GM_setValue('autoReceive', settings.autoReceive); // 保存领取奖励状态
@@ -1208,6 +1261,7 @@ function openSettingsDialog() {
             GM_setValue('taskCenterDoNotDisturb', settings.taskCenterDoNotDisturb); // 保存任务中心免打扰状态
             GM_setValue('adaptiveTextbox', settings.adaptiveTextbox); // 保存自适应文本框状态
             GM_setValue('autoCheckUpdate', settings.autoCheckUpdate); // 保存自动检查更新状态
+            GM_setValue('autoShowAnnouncement', settings.autoShowAnnouncement); // 保存自动弹出公告状态
 
             // 提示用户设置已保存
             Swal.fire({
@@ -1458,6 +1512,14 @@ window.onload = function() {
                 messageCountElement.style.display = 'none'; // 隐藏消息计数元素
             }
         }, 1000);
+        
+        // 静默访问消息页面
+        GM_xmlhttpRequest({
+            method: 'GET',
+            url: 'https://world.xiaomawang.com/w/message',
+            onload: function() { console.log('Silent visit to message page completed'); },
+            onerror: function() { console.log('Silent visit to message page failed'); }
+        });
     }
 
     // 动态免打扰功能
@@ -1468,6 +1530,14 @@ window.onload = function() {
                 dynamicRedDotElement.style.display = 'none'; // 隐藏动态红点元素
             }
         }, 1000);
+        
+        // 静默访问动态页面
+        GM_xmlhttpRequest({
+            method: 'GET',
+            url: 'https://world.xiaomawang.com/w/dynamic',
+            onload: function() { console.log('Silent visit to dynamic page completed'); },
+            onerror: function() { console.log('Silent visit to dynamic page failed'); }
+        });
     }
 
     // 任务中心免打扰功能
