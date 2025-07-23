@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         小码王Plus
-// @version      1.7.0
+// @version      1.7.1
 // @description  使你的小码王更易于使用
 // @author       RSPqfgn
 // @match        https://world.xiaomawang.com/*
@@ -1182,10 +1182,11 @@ function openSettingsDialog() {
 
 <div id="aboutSettings" class="hidden">
     <div class="about-section">
-        <div class="about-item"><strong>小码王Plus</strong></div>
+        <div class="about-item"><strong><a href="https://github.com/RSPqfgn/XMWplus" target="_blank">小码王Plus</a></strong></div>
         <div class="about-item"><strong>版本：</strong>v${GM_info.script.version}</div>
         <div class="about-item"><strong>作者：</strong>RSPqfgn</div>
         <div class="about-item"><strong>许可证：</strong>MIT</div>
+        <div class="about-item"><strong>推荐：</strong><a href="https://github.com/RSPqfgn/XMWmax" target="_blank">XMWmax</a></div>
     </div>
 </div>
 `,
